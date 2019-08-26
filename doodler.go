@@ -14,18 +14,18 @@ import (
 	"time"
 )
 
-var output string
+var output_path string
 var wg sync.WaitGroup
 
 func main() {
 	var startdate, enddate string
 	var image, hdimage, full bool
-	flag.StringVar(&startdate, "startdate", "1998/08", "First date to scrap")
-	flag.StringVar(&enddate, "enddate", time.Now().Format("2006/01"), "Last date to scrap")
+	flag.StringVar(&startdate, "start", "1998/08", "First date to scrap")
+	flag.StringVar(&enddate, "end", time.Now().Format("2006/01"), "Last date to scrap")
 	flag.BoolVar(&image, "image", false, "Scrap the doodle image (not HD resolution)")
 	flag.BoolVar(&hdimage, "hd-image", false, "Scrap the doodle image in HD")
 	flag.BoolVar(&full, "full", false, "Query the full format (more informations)")
-	flag.StringVar(&output, "output", ".", "Directory where to save the scrapped data")
+	flag.StringVar(&output_path, "output_path", ".", "Directory where to save the scrapped data")
 	flag.Parse()
 
 	date_regex := regexp.MustCompile("^\\d{4}/\\d{2}$")
@@ -41,9 +41,9 @@ func main() {
 	wg.Wait()
 }
 
-var re = regexp.MustCompile("\\d+")
-
 func ParseDate(date string) (int, int) {
+	// returns the year and month from a string, the captures of "(\d{4})/(\d{2})"
+	var re = regexp.MustCompile("\\d+")
 	date_numbers := re.FindAllString(date, 2)
 	year, err := strconv.Atoi(date_numbers[0])
 	if err != nil {
@@ -57,10 +57,11 @@ func ParseDate(date string) (int, int) {
 }
 
 func scrap(startdate, enddate string, image, hdimage, isfull bool) {
+	// Scrap Doodle data in the given date interval
 	startyear, startmonth := ParseDate(startdate)
 	endyear, endmonth := ParseDate(enddate)
 
-	fmt.Printf("startyear : %v\nstartmonth : %d\nendyear : %d\nendmonth : %d\n", startyear, startmonth, endyear, endmonth)
+	//fmt.Printf("startyear : %v\nstartmonth : %d\nendyear : %d\nendmonth : %d\n", startyear, startmonth, endyear, endmonth)
 	full := 0
 	if isfull {
 		full = 1
@@ -68,7 +69,7 @@ func scrap(startdate, enddate string, image, hdimage, isfull bool) {
 	// Iterating over the dates
 
 	if startyear == endyear {
-		os.Mkdir(filepath.Join(output, strconv.Itoa(startyear)), os.ModePerm)
+		os.Mkdir(filepath.Join(output_path, strconv.Itoa(startyear)), os.ModePerm)
 		for m := startmonth; m <= endmonth; m++ {
 			wg.Add(1)
 			go func(month int) {
@@ -78,7 +79,7 @@ func scrap(startdate, enddate string, image, hdimage, isfull bool) {
 		}
 	} else {
 		// 1) Iterate over the remaining months in startyear
-		os.Mkdir(filepath.Join(output, strconv.Itoa(startyear)), os.ModePerm)
+		os.Mkdir(filepath.Join(output_path, strconv.Itoa(startyear)), os.ModePerm)
 		for m := startmonth; m <= 12; m++ {
 			wg.Add(1)
 			go func(month int) {
@@ -89,7 +90,7 @@ func scrap(startdate, enddate string, image, hdimage, isfull bool) {
 
 		// 2) Iterate over all the months in the exclusive range ]startyear, endyear[
 		for y := startyear + 1; y < endyear; y++ {
-			os.Mkdir(filepath.Join(output, strconv.Itoa(y)), os.ModePerm)
+			os.Mkdir(filepath.Join(output_path, strconv.Itoa(y)), os.ModePerm)
 			for m := 1; m <= 12; m++ {
 				wg.Add(1)
 				go func(year, month int) {
@@ -100,7 +101,7 @@ func scrap(startdate, enddate string, image, hdimage, isfull bool) {
 		}
 
 		// 3) Iterate over the months until endmonth in endyear
-		os.Mkdir(filepath.Join(output, strconv.Itoa(endyear)), os.ModePerm)
+		os.Mkdir(filepath.Join(output_path, strconv.Itoa(endyear)), os.ModePerm)
 		for m := 1; m <= endmonth; m++ {
 			wg.Add(1)
 			go func(month int) {
@@ -112,15 +113,16 @@ func scrap(startdate, enddate string, image, hdimage, isfull bool) {
 }
 
 func ScrapMonth(year, month int, full int, image, hdimage bool) {
-	var path string = filepath.Join(output, fmt.Sprintf("%d/%d.json", year, month))
+	// Scrap one month of Doodle data, saving data and images if necessary
+	var path string = filepath.Join(output_path, fmt.Sprintf("%d/%d.json", year, month))
 	if _, err := os.Stat(path); err == nil {
 		return
 	}
 	data := ScrapData(year, month, full)
-	fmt.Printf("year = %v ; month = %v ; data = %v\n", year, month, data)
+	//fmt.Printf("year = %v ; month = %v ; data = %v\n", year, month, data)
 	SaveData(path, data)
 	if image {
-		image_folder := filepath.Join(output, fmt.Sprintf("%d/%d_images", year, month))
+		image_folder := filepath.Join(output_path, fmt.Sprintf("%d/%d_images", year, month))
 		os.Mkdir(image_folder, os.ModePerm)
 
 		var json_data []map[string]interface{}
@@ -140,14 +142,14 @@ func ScrapMonth(year, month int, full int, image, hdimage bool) {
 	}
 
 	if hdimage {
-		image_folder := filepath.Join(output, fmt.Sprintf("%d/%d_hd_images", year, month))
+		image_folder := filepath.Join(output_path, fmt.Sprintf("%d/%d_hd_images", year, month))
 		os.Mkdir(image_folder, os.ModePerm)
 		var json_data []map[string]interface{}
 		json.Unmarshal(data, &json_data)
 
 		for _, doodle := range json_data {
 			url := doodle["high_res_url"]
-			fmt.Printf("url = %v\ndoodle = %v\n", url, doodle)
+			//fmt.Printf("url = %v\ndoodle = %v\n", url, doodle)
 			wg.Add(1)
 			go func(u string) {
 				defer wg.Done()
@@ -158,11 +160,15 @@ func ScrapMonth(year, month int, full int, image, hdimage bool) {
 }
 
 func ScrapData(year, month int, full int) []byte {
+	// Return the data returned by the Google server, one month of Doodle data
 	var url string = fmt.Sprintf("https://www.google.com/doodles/json/%d/%d?full=%d", year, month, full)
-	return GetRequest(url)
+	var ret []byte = GetRequest(url)
+	fmt.Printf("Fetched data for %d/%d\n", month, year)
+	return ret
 }
 
 func SaveData(path string, data []byte) {
+	// Write data to the file at path
 	err := ioutil.WriteFile(path, data, 0644)
 	if err != nil {
 		panic(err)
@@ -170,14 +176,17 @@ func SaveData(path string, data []byte) {
 }
 
 func DownloadImage(url, path string) {
+	// Download a file at the given url, and save it to path
 	filename_regex := regexp.MustCompile("/[^/]*$")
 	var filepath string = filepath.Join(path, filename_regex.FindString(url))
 	var image_data []byte = GetRequest(url)
 	// save it
 	ioutil.WriteFile(filepath, image_data, 0644)
+	fmt.Printf("Downloaded image %s\n", url)
 }
 
 func GetRequest(url string) []byte {
+	// Send a GET HTTP request to url, and return the body of the result
 	m, err := regexp.MatchString("^//", url)
 	if m {
 		url = fmt.Sprintf("https:%s", url)
