@@ -71,20 +71,20 @@ func scrap(startdate, enddate string, image, hdimage, isfull bool) {
 		os.Mkdir(filepath.Join(output, strconv.Itoa(startyear)), os.ModePerm)
 		for m := startmonth; m <= endmonth; m++ {
 			wg.Add(1)
-			go func() {
+			go func(month int) {
 				defer wg.Done()
-				ScrapMonth(startyear, m, full, image, hdimage)
-			}()
+				ScrapMonth(startyear, month, full, image, hdimage)
+			}(m)
 		}
 	} else {
 		// 1) Iterate over the remaining months in startyear
 		os.Mkdir(filepath.Join(output, strconv.Itoa(startyear)), os.ModePerm)
 		for m := startmonth; m <= 12; m++ {
 			wg.Add(1)
-			go func() {
+			go func(month int) {
 				defer wg.Done()
-				ScrapMonth(startyear, m, full, image, hdimage)
-			}()
+				ScrapMonth(startyear, month, full, image, hdimage)
+			}(m)
 		}
 
 		// 2) Iterate over all the months in the exclusive range ]startyear, endyear[
@@ -92,10 +92,10 @@ func scrap(startdate, enddate string, image, hdimage, isfull bool) {
 			os.Mkdir(filepath.Join(output, strconv.Itoa(y)), os.ModePerm)
 			for m := 1; m <= 12; m++ {
 				wg.Add(1)
-				go func() {
+				go func(year, month int) {
 					defer wg.Done()
-					ScrapMonth(y, m, full, image, hdimage)
-				}()
+					ScrapMonth(year, month, full, image, hdimage)
+				}(y, m)
 			}
 		}
 
@@ -103,10 +103,10 @@ func scrap(startdate, enddate string, image, hdimage, isfull bool) {
 		os.Mkdir(filepath.Join(output, strconv.Itoa(endyear)), os.ModePerm)
 		for m := 1; m <= endmonth; m++ {
 			wg.Add(1)
-			go func() {
+			go func(month int) {
 				defer wg.Done()
-				ScrapMonth(endyear, m, full, image, hdimage)
-			}()
+				ScrapMonth(endyear, month, full, image, hdimage)
+			}(m)
 		}
 	}
 }
@@ -132,10 +132,10 @@ func ScrapMonth(year, month int, full int, image, hdimage bool) {
 			url := doodle["url"]
 			//fmt.Printf("url = %v\ndoodle = %v\n", url, doodle)
 			wg.Add(1)
-			go func() {
+			go func(u string) {
 				defer wg.Done()
-				DownloadImage(url.(string), image_folder)
-			}()
+				DownloadImage(u, image_folder)
+			}(url.(string))
 		}
 	}
 
@@ -149,10 +149,10 @@ func ScrapMonth(year, month int, full int, image, hdimage bool) {
 			url := doodle["high_res_url"]
 			fmt.Printf("url = %v\ndoodle = %v\n", url, doodle)
 			wg.Add(1)
-			go func() {
+			go func(u string) {
 				defer wg.Done()
-				DownloadImage(url.(string), image_folder)
-			}()
+				DownloadImage(u, image_folder)
+			}(url.(string))
 		}
 	}
 }
