@@ -16,12 +16,14 @@ import (
 
 var output_path string
 var wg sync.WaitGroup
+var today string
 
 func main() {
 	var startdate, enddate string
 	var image, hdimage, full bool
+	today = time.Now().Format("2006/01")
 	flag.StringVar(&startdate, "start", "1998/08", "First date to scrap")
-	flag.StringVar(&enddate, "end", time.Now().Format("2006/01"), "Last date to scrap")
+	flag.StringVar(&enddate, "end", today, "Last date to scrap")
 	flag.BoolVar(&image, "image", false, "Scrap the doodle image (not HD resolution)")
 	flag.BoolVar(&hdimage, "hd-image", false, "Scrap the doodle image in HD")
 	flag.BoolVar(&full, "full", false, "Query the full format (more informations)")
@@ -60,7 +62,38 @@ func scrap(startdate, enddate string, image, hdimage, isfull bool) {
 	// Scrap Doodle data in the given date interval
 	startyear, startmonth := ParseDate(startdate)
 	endyear, endmonth := ParseDate(enddate)
+	currentyear, currentmonth := ParseDate(today)
 
+	if startmonth < 1 || startmonth > 12 {
+		fmt.Println("Start month must be between 1 and 12")
+		return
+	}
+
+	if endmonth < 1 || endmonth > 12 {
+		fmt.Println("End month must be between 1 and 12")
+		return
+	}
+
+	if startyear < 1998 || startyear == 1998 && startmonth < 8 {
+		fmt.Println("Doodles were introduced on August 1998, using it as a start date")
+		startyear = 1998
+		startmonth = 8
+	}
+
+	if startyear > endyear || startyear == endyear && startmonth > endmonth {
+		fmt.Println("Start date must come before end date")
+		return
+	}
+
+	if startyear > currentyear || startyear == currentyear && startmonth > currentmonth {
+		fmt.Println("Start date must not be a date in the future")
+		return
+	}
+	if endyear > currentyear || endyear == currentyear && endmonth > currentmonth {
+		fmt.Println("End date cannot be a date in the future, using the current date instead")
+		endyear = currentyear
+		endmonth = currentmonth
+	}
 	//fmt.Printf("startyear : %v\nstartmonth : %d\nendyear : %d\nendmonth : %d\n", startyear, startmonth, endyear, endmonth)
 	full := 0
 	if isfull {
