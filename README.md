@@ -1,5 +1,7 @@
 # doodler
-a scrapper for Doodles featured on google.com
+a scrapper for Doodles featured on google.com.
+
+Output is in json format.
 
 # Compilation
 
