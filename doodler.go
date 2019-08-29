@@ -17,10 +17,12 @@ import (
 var output_path string
 var wg sync.WaitGroup
 var today string
+var lock chan int // to block goroutines and avoid TLS Handshake timeouts
 
 func main() {
 	var startdate, enddate string
 	var image, hdimage, full bool
+	var threads int
 	today = time.Now().Format("2006/01")
 	flag.StringVar(&startdate, "start", "1998/08", "First date to scrap")
 	flag.StringVar(&enddate, "end", today, "Last date to scrap")
@@ -28,6 +30,8 @@ func main() {
 	flag.BoolVar(&hdimage, "hd-image", false, "Scrap the doodle image in HD")
 	flag.BoolVar(&full, "full", false, "Query the full format (more informations)")
 	flag.StringVar(&output_path, "output_path", ".", "Directory where to save the scrapped data")
+	flag.IntVar(&threads, "threads", 10, "The number of goroutines running in parallel")
+	lock = make(chan int, threads)
 	flag.Parse()
 
 	date_regex := regexp.MustCompile("^\\d{4}/\\d{2}$")
@@ -94,7 +98,6 @@ func scrap(startdate, enddate string, image, hdimage, isfull bool) {
 		endyear = currentyear
 		endmonth = currentmonth
 	}
-	//fmt.Printf("startyear : %v\nstartmonth : %d\nendyear : %d\nendmonth : %d\n", startyear, startmonth, endyear, endmonth)
 	full := 0
 	if isfull {
 		full = 1
@@ -152,20 +155,14 @@ func ScrapMonth(year, month int, full int, image, hdimage bool) {
 		return
 	}
 	data := ScrapData(year, month, full)
-	//fmt.Printf("year = %v ; month = %v ; data = %v\n", year, month, data)
 	SaveData(path, data)
 	if image {
 		image_folder := filepath.Join(output_path, fmt.Sprintf("%d/%d_images", year, month))
 		os.Mkdir(image_folder, os.ModePerm)
-
 		var json_data []map[string]interface{}
-		//fmt.Printf("data = %v\n", string(data))
-		//fmt.Println("hi")
 		json.Unmarshal(data, &json_data)
-		//fmt.Printf("json_data = %v\n", json_data)
 		for _, doodle := range json_data {
 			url := doodle["url"]
-			//fmt.Printf("url = %v\ndoodle = %v\n", url, doodle)
 			wg.Add(1)
 			go func(u string) {
 				defer wg.Done()
@@ -182,7 +179,6 @@ func ScrapMonth(year, month int, full int, image, hdimage bool) {
 
 		for _, doodle := range json_data {
 			url := doodle["high_res_url"]
-			//fmt.Printf("url = %v\ndoodle = %v\n", url, doodle)
 			wg.Add(1)
 			go func(u string) {
 				defer wg.Done()
@@ -224,11 +220,23 @@ func GetRequest(url string) []byte {
 	if m {
 		url = fmt.Sprintf("https:%s", url)
 	}
+	
+	/* UNCOMMENT and change http below to client to change timeouts
+	transport := &http.Transport{
+		TLSHandshakeTimeout: 120 * time.Second,
+	}
+	client := &http.Client{
+		Timeout: 120 * time.Second,
+	}
+	*/
+	
+	lock <- 1
 	rs, err := http.Get(url)
 	if err != nil {
 		panic(err)
 	}
 	defer rs.Body.Close()
+	defer func() { <-lock }()
 	body, err := ioutil.ReadAll(rs.Body)
 	if err != nil {
 		panic(err)
