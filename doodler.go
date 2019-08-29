@@ -31,9 +31,8 @@ func main() {
 	flag.BoolVar(&full, "full", false, "Query the full format (more informations)")
 	flag.StringVar(&output_path, "output_path", ".", "Directory where to save the scrapped data")
 	flag.IntVar(&threads, "threads", 10, "The number of goroutines running in parallel")
-	lock = make(chan int, threads)
 	flag.Parse()
-
+	lock = make(chan int, threads)
 	date_regex := regexp.MustCompile("^\\d{4}/\\d{2}$")
 	if m := date_regex.MatchString(startdate); !m {
 		panic("Invalid startdate given")
@@ -220,7 +219,7 @@ func GetRequest(url string) []byte {
 	if m {
 		url = fmt.Sprintf("https:%s", url)
 	}
-	
+
 	/* UNCOMMENT and change http below to client to change timeouts
 	transport := &http.Transport{
 		TLSHandshakeTimeout: 120 * time.Second,
@@ -229,7 +228,7 @@ func GetRequest(url string) []byte {
 		Timeout: 120 * time.Second,
 	}
 	*/
-	
+
 	lock <- 1
 	rs, err := http.Get(url)
 	if err != nil {
