@@ -234,8 +234,8 @@ func GetRequest(url string) []byte {
 	if err != nil {
 		panic(err)
 	}
-	defer rs.Body.Close()
 	defer func() { <-lock }()
+	defer rs.Body.Close()
 	body, err := ioutil.ReadAll(rs.Body)
 	if err != nil {
 		panic(err)

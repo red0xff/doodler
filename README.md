@@ -14,7 +14,7 @@ Output is in json format.
 Usage of ./doodler:
 
 	-end string
-			Last date to scrap (default "2019/08")
+			Last date to scrap (default : the current month)
 	
 	-full
 			Query the full format (more informations)
@@ -30,6 +30,9 @@ Usage of ./doodler:
 	
 	-start string
 			First date to scrap (default "1998/08")
+	
+	-threads int
+			The number of goroutines running in parallel (default 10)
 
 
 # Usage Examples
@@ -42,9 +45,9 @@ Usage of ./doodler:
 
 `doodler -start 2016/02 -end 2018/03`
 
-### Scrap all informations (including countries where the doodle was showcased, and other infos)
+### Scrap all informations, plus regular (not high-definition) images (including countries where the doodle was showcased, and other infos) for doodles featured in May 2017
 
-`doodler -full`
+`doodler -full -start 2017/05 -end 2017/05 -image`
 
 ### Scrap both regular and HD versions of doodles (along with basic infos) for the month of May 2016
 
