@@ -84,7 +84,7 @@ func scrap(startdate, enddate string, image, hdimage, isfull bool) {
 	}
 
 	if startyear > endyear || startyear == endyear && startmonth > endmonth {
-		fmt.Println("Start date must come before end date")
+		fmt.Println("end date must come after start date")
 		return
 	}
 
